@@ -81,22 +81,13 @@ class command(object):
             self.ensureMovementMode(True)
             # try to get current position
             self.send('?')
-            # start homing procedure
-            # TODO(flynneva): should this be done at startup?
-            # should probably be configurable by user if they want to or not
-            # self.home()
-            # TODO(flynneva): could cause issues if user is resuming a job
-            # set the current position as the origin (GRBL sometimes starts with z not 0)
-            # self.setOrigin()
         except serial.serialutil.SerialException:
             # Could not detect GRBL device on serial port ' + self.port
             # Are you sure the GRBL device is connected and powered on?
             return
 
     def shutdown(self):
-        """Shutdown the GRBL machine."""
-        # TODO(flynneva): probably should do some more serious shutdown logic here
-        # close the serial connection
+        """Shutdown the GRBL machine & close the serial connection"""
         self.s.close()
 
     def send(self, gcode):
@@ -106,27 +97,30 @@ class command(object):
         Args:
         ----
             gcode (str): GCODE string to send
-
         Return:
         ------
             str: response of GRBL device to GCODE
-
         """
-        # TODO(evanflynn): need to add some input checking to make sure its valid GCODE
+        #TODO need to add some input checking to make sure its valid GCODE
         if(len(gcode) > 0):
             responses = []
             if(self.mode == self.MODE.NORMAL):
                 self.s.write(str.encode(gcode + '\n'))
                 # wait until receive response with EOL character
                 r = self.s.readline().decode('utf-8').strip()
+
                 if(len(r) > 0):
                     responses.append(r)
+
                 # check to see if there are more lines in waiting
                 while (self.s.inWaiting() > 0):
                     responses.append(self.s.readline().decode('utf-8').strip())
+
                 self.handle_responses(responses, gcode)
+
                 # last response should always be the state of grbl
                 return responses[-1]
+            
             elif(self.mode == self.MODE.DEBUG):
                 # in debug mode just return the GCODE that was input
                 return 'Sent: ' + gcode
@@ -138,6 +132,7 @@ class command(object):
         for line in responses:
             if(line.find('ok') == -1):
                 self.node.get_logger().info('[ ' + str(cmd) + ' ] ' + str(line))
+            
             # check if line is grbl status report
             if(line[0] == '<'):
                 self.parse_status(line)
@@ -146,20 +141,25 @@ class command(object):
         try:
             # seperate fields using pipe delimeter |
             fields = status.split('|')
+
             # clean first and last field of '<>'
             fields[0] = fields[0][1:]
             last_field = len(fields) - 1
             fields[last_field] = fields[last_field][:-1]
+
             # for f in fields:
             #    self.node.get_logger().info(str(f))
             # followed grbl message construction docs
             # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-response-messages
             # The first (Machine State) and second (Current Position) data fields
             # are always included in every report.
+            
             # handle machine state
             state_msg = self.handle_state(fields[0])
+
             # parse current position
             self.handle_current_pose(fields[1])
+
             # publish status
             self.node.pub_state_.publish(state_msg)
         except IndexError:

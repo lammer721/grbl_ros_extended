@@ -1,5 +1,4 @@
-# Copyright 2020 Evan Flynn
-#
+
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -17,6 +16,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+
 from threading import Event
 import time
 
@@ -48,7 +48,6 @@ class grbl_node(Node):
     """
 
     def __init__(self):
-        # TODO(evanflynn): init node with machine_id param input or arg
         super().__init__('grbl_device')
 
         self.get_logger().info('Declaring ROS parameters')
@@ -73,14 +72,17 @@ class grbl_node(Node):
 
         self.machine_id = self.get_parameter('machine_id').get_parameter_value().string_value
         self.get_logger().info('Initializing Publishers & Subscribers')
+
         # Initialize Publishers
         self.pub_tf_ = TransformBroadcaster(self)
         self.pub_mpos_ = self.create_publisher(Pose, self.machine_id + '/machine_position', 5)
         self.pub_wpos_ = self.create_publisher(Pose, self.machine_id + '/work_position', 5)
         self.pub_state_ = self.create_publisher(State, self.machine_id + '/state', 5)
+
         # Initialize Services
         self.srv_stop_ = self.create_service(
             Stop, self.machine_id + '/stop', self.stopCallback)
+        
         # Initialize Actions
         self.action_done_event = Event()
         self.callback_group = ReentrantCallbackGroup()
@@ -89,16 +91,18 @@ class grbl_node(Node):
                 SendGcodeCmd,
                 self.machine_id + '/send_gcode_cmd',
                 self.gcodeCallback)
+        
         self.action_send_gcode_file_ = ActionServer(
                 self,
                 SendGcodeFile,
                 self.machine_id + '/send_gcode_file',
                 self.streamCallback)
+        
         self.action_client_send_gcode_ = ActionClient(
                 self,
                 SendGcodeCmd,
                 self.machine_id + '/send_gcode_cmd', callback_group=self.callback_group)
-
+        
         self.action_done_event = Event()
 
         self.get_logger().info('Getting ROS parameters')
@@ -121,13 +125,12 @@ class grbl_node(Node):
         self.get_logger().warn('  baudrate:   ' + str(baud.get_parameter_value().integer_value))
 
         self.get_logger().info('Initializing GRBL Device')
-        self.machine = grbl(self)
+
+        self.machine = grbl(self)    #init grbl object (__init__.py)
+
         self.get_logger().info('Starting up GRBL Device...')
-        self.machine.startup(self.machine_id,
-                             port.get_parameter_value().string_value,
-                             baud.get_parameter_value().integer_value,
-                             acc.get_parameter_value().integer_value,
-                             max_x.get_parameter_value().integer_value,
+
+        self.machine.startup(self.machine_id,             #startup function (in _command.py). Connects to serial device, sets movement to absolute, sends '?' command and parses result
                              max_y.get_parameter_value().integer_value,
                              max_z.get_parameter_value().integer_value,
                              default_speed.get_parameter_value().integer_value,
@@ -137,7 +140,8 @@ class grbl_node(Node):
                              steps_x.get_parameter_value().integer_value,
                              steps_y.get_parameter_value().integer_value,
                              steps_z.get_parameter_value().integer_value)
-        if(self.machine.s):
+        
+        if(self.machine.s):     #if serial port defined
             self.machine.getStatus()
             self.machine.getSettings()
         else:
@@ -152,7 +156,6 @@ class grbl_node(Node):
             self.get_logger().warn(
                 '[ TIP ]   ros2 run grbl_ros grbl_node '
                 '--ros-args --params-file <path/to/config>.yaml')
-            # TODO(evanflynn): set this to a different color so it stands out?
             self.get_logger().info('Node running in `debug` mode')
             self.get_logger().info('GRBL device operation may not function as expected')
             self.machine.mode = self.machine.MODE.DEBUG
