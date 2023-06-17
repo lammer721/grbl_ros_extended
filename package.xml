@@ -3,8 +3,8 @@
 <package format="3">
   <name>grbl_ros</name>
   <version>0.0.16</version>
-  <description>ROS2 package to interface with a GRBL serial device</description>
-  <maintainer email="evanflynn.msu@gmail.com">Evan Flynn</maintainer>
+  <description>ROS2 package to interface with a GRBL or FLUIDNC serial device</description>
+  <maintainer email="lammer.cody@gmail.com">Cody Lammer</maintainer>
   <license>MIT</license>
 
   <depend>rclpy</depend>
