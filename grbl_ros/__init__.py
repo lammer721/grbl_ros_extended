@@ -34,11 +34,10 @@ code from the grbl device code.
 
 from ._command import command
 from ._configure import configure
-from ._control import control
 from ._logging import logging
 
 
-class grbl(control, command, configure, logging):
+class grbl(command, configure, logging):
     """Initializes the base grbl device class."""
 
     def __init__(self, node):

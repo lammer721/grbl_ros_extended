@@ -130,7 +130,11 @@ class grbl_node(Node):
 
         self.get_logger().info('Starting up GRBL Device...')
 
-        self.machine.startup(self.machine_id,             #startup function (in _command.py). Connects to serial device, sets movement to absolute, sends '?' command and parses result
+        self.machine.startup(self.machine_id,
+                             port.get_parameter_value().string_value,
+                             baud.get_parameter_value().integer_value,
+                             acc.get_parameter_value().integer_value,
+                             max_x.get_parameter_value().integer_value,
                              max_y.get_parameter_value().integer_value,
                              max_z.get_parameter_value().integer_value,
                              default_speed.get_parameter_value().integer_value,
